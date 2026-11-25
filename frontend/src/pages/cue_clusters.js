@@ -31,6 +31,10 @@
     {
       "name": "token",
       "label": "计算凭据"
+    },
+    {
+      "name": "calibration",
+      "label": "签簇沿用标定"
     }
   ],
   "layout": "split",

@@ -8,6 +8,7 @@ from core import auth
 from core.db import metadata, transaction
 from core.config import SEED_DEMO
 from core.middleware import install
+from core.schema_migrate import migrate
 from core.queueing import broker, view
 from domain.routes import routers
 from scripts.seed_demo import seed
@@ -16,6 +17,7 @@ from scripts.seed_demo import seed
 async def lifespan(app):
     from core.db import engine
     metadata.create_all(engine)
+    migrate()
     if SEED_DEMO:
         try:
             seed()

@@ -6,7 +6,7 @@ from core.db import transaction
 from core.records import scan
 from domain import cue_tracks_service as service
 from domain.cue_tracks_model import cue_tracks
-from domain.cue_tracks_schemas import RecordTrack, LockTrack
+from domain.cue_tracks_schemas import RecordTrack, LockTrack, ResolveTrack
 
 router = APIRouter()
 
@@ -31,4 +31,13 @@ def lock_track(data: LockTrack, user=Depends(actor)):
     with transaction() as conn:
         output = service.lock_track(conn, user, data)
         record(conn, user, 'cue_tracks.lock_track')
+        return output
+
+
+@router.post('/cue_tracks/resolve-calibration')
+def resolve_calibration(data: ResolveTrack, user=Depends(actor)):
+    allow(user, ('operator', 'reviewer'))
+    with transaction() as conn:
+        output = service.resolve_track(conn, user, data)
+        record(conn, user, 'cue_tracks.resolve_calibration')
         return output

@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -9,12 +10,24 @@ from core.config import REDIS_URL
 broker = Redis.from_url(REDIS_URL, decode_responses=True)
 QUEUE = 'compute_requests'
 
+
+def _default(value):
+    # 队列载荷可能携带测量时间等 datetime 字段，统一转 ISO 字符串
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    raise TypeError(f'无法序列化 {type(value).__name__}')
+
+
+def dumps(payload):
+    return json.dumps(payload, default=_default)
+
+
 def submit(user, payload):
     token = uuid4().hex
     item = {'token': token, 'owner': user['sub'], 'input': payload}
     with broker.pipeline() as pipe:
-        pipe.set(f'compute:{token}', json.dumps({'owner': user['sub'], 'status': 'queued'}), ex=86400)
-        pipe.rpush(QUEUE, json.dumps(item))
+        pipe.set(f'compute:{token}', json.dumps({'owner': user['sub'], 'status': 'queued'}, default=_default), ex=86400)
+        pipe.rpush(QUEUE, dumps(item))
         pipe.execute()
     return {'token': token, 'status': 'queued'}
 

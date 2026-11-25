@@ -8,17 +8,23 @@ function input(field) {
   if (field.kind === 'bool') return el('select', {name:field.name},
     el('option',{value:'true', selected:fallback(field) === true ? '' : undefined},'是'),
     el('option',{value:'false', selected:fallback(field) === false ? '' : undefined},'否'));
+  if (field.kind === 'select') return el('select', {name:field.name},
+    field.options.map(option => el('option', {value:option.value,
+      selected:fallback(field) === option.value ? '' : undefined}, option.label)));
   if (field.kind === 'json') return el('textarea', {name:field.name, required:''}, JSON.stringify(fallback(field), null, 2));
   const numeric = ['int','float'].includes(field.kind);
-  return el('input',{name:field.name, required:'', type:numeric ? 'number' : 'text',
+  return el('input',{name:field.name, required: field.optional ? undefined : '',
+    type: field.kind === 'datetime' ? 'datetime-local' : numeric ? 'number' : 'text',
     step:field.kind === 'float' ? 'any' : undefined, value:fallback(field) ?? ''});
 }
 function parse(form, fields) {
   const data = new FormData(form);
   return Object.fromEntries(fields.map(field => {
     const raw = data.get(field.name);
+    if (field.optional && (raw === null || raw === '')) return [field.name, null];
     const convert = ['int','float'].includes(field.kind) ? Number :
-      ['bool','json'].includes(field.kind) ? JSON.parse : String;
+      ['bool','json'].includes(field.kind) ? JSON.parse :
+      field.kind === 'datetime' ? value => new Date(value).toISOString() : String;
     return [field.name, convert(raw)];
   }));
 }
